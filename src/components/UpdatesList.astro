@@ -1,0 +1,208 @@
+---
+import { getCollection, render } from 'astro:content';
+
+// Resolve the current language. Within Starlight, `locals.starlight.lang`
+// is the most reliable source; fall back to Astro's locale, then English.
+const lang = (Astro.locals.starlight?.lang ?? Astro.currentLocale ?? 'en').split('-')[0];
+const locale = (lang === 'fr' ? 'fr' : 'en') as 'en' | 'fr';
+
+// Only entries for the current locale (folder-prefixed ids: "en/...", "fr/...").
+const raw = await getCollection('updates', ({ id }) => id.startsWith(`${locale}/`));
+raw.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const entries = await Promise.all(
+  raw.map(async (entry) => ({ entry, Content: (await render(entry)).Content }))
+);
+
+// Format in UTC: bare YAML dates parse as UTC midnight, so formatting in the
+// local zone (e.g. UTC-4) would shift the displayed day back by one.
+const dateFmt = new Intl.DateTimeFormat(locale, {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  timeZone: 'UTC',
+});
+
+const strings = {
+  en: { empty: 'No updates yet.', source: 'View source change', tag: 'Update', details: 'Details' },
+  fr: { empty: 'Aucune nouveauté pour le moment.', source: 'Voir le changement source', tag: 'Nouveauté', details: 'Détails' },
+} as const;
+const t = strings[locale];
+---
+
+{entries.length === 0 && <p class="updates-empty">{t.empty}</p>}
+
+<div class="updates">
+  {entries.map(({ entry, Content }) => (
+    <details class="update">
+      <summary class="update-summary">
+       <span class="update-row">
+        {/* Colored icon tile — megaphone, per the Annonces cards. */}
+        <span class="update-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m3 11 18-5v12L3 13v-2z" /><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+          </svg>
+        </span>
+        <span class="update-main">
+          <span class="update-head">
+            <span class="pill pill-green">{t.tag}</span>
+            <time class="update-date" datetime={entry.data.date.toISOString()}>{dateFmt.format(entry.data.date)}</time>
+          </span>
+          <span class="update-title">{entry.data.title}</span>
+          <span class="update-desc">{entry.data.description}</span>
+        </span>
+        <svg class="update-chevron" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6" /></svg>
+       </span>
+      </summary>
+      <div class="update-body">
+        <div class="update-details">
+          <Content />
+        </div>
+        {entry.data.sourcePR && (
+          <a class="src-chip" href={entry.data.sourcePR} target="_blank" rel="noopener">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18" /><path d="m7 14 3-3 3 2 4-5" /></svg>
+            {t.source}
+          </a>
+        )}
+      </div>
+    </details>
+  ))}
+</div>
+
+<style>
+  .updates {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+  .updates-empty {
+    color: var(--ink-3);
+  }
+
+  /* Card: white surface on the off-white page, hairline border, 16px radius. */
+  .update {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .update:hover {
+    border-color: var(--line-strong);
+  }
+
+  /* Block summary (marker removal is reliable here); flex lives on the row. */
+  .update-summary {
+    display: block;
+    padding: 1rem 1.125rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  .update-summary::-webkit-details-marker {
+    display: none;
+  }
+  .update-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+  }
+
+  /* Colored icon tile. */
+  .update-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.75rem;
+    background: var(--octopus-green-softer);
+    color: var(--octopus-green-deeper);
+  }
+
+  .update-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .update-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .update-date {
+    font-size: 0.75rem;
+    color: var(--ink-3);
+  }
+  .update-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--ink);
+  }
+  .update-desc {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+
+  /* Chevron rotates when the card is expanded. */
+  .update-chevron {
+    flex-shrink: 0;
+    margin-top: 0.5rem;
+    color: var(--ink-4);
+    transition: transform 0.15s;
+  }
+  .update[open] .update-chevron {
+    transform: rotate(90deg);
+  }
+
+  /* Collapsible body, aligned under the title column. */
+  .update-body {
+    padding: 0 1.125rem 1.125rem;
+    margin-left: 3.125rem; /* icon (2.25rem) + gap (0.875rem) */
+  }
+  .update-details {
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.875rem;
+    color: var(--ink-2);
+  }
+  .update-details :global(ul) {
+    margin: 0;
+    padding-left: 1.1rem;
+  }
+  .update-details :global(li) {
+    margin: 0.25rem 0;
+  }
+  .update-details :global(li)::marker {
+    color: var(--octopus-green-deeper);
+  }
+
+  /* Source link rendered as the mockups' bordered src-chip. */
+  .src-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 0.875rem;
+    padding: 7px 12px;
+    border-radius: 9px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    font-size: 0.78125rem;
+    font-weight: 500;
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+  .src-chip:hover {
+    border-color: var(--line-strong);
+  }
+
+  @media (max-width: 30rem) {
+    .update-body {
+      margin-left: 0;
+    }
+  }
+</style>

@@ -1,0 +1,155 @@
+/* Argonaut Docs — Octopus design system, light-locked.
+   Tokens ported from the portal mockups (argonaut/portal/mockups).
+   The site is light-only, so the same palette is applied to both
+   :root (Starlight's default/dark slot) and the explicit light slot. */
+
+:root,
+:root[data-theme='light'],
+:root[data-theme='dark'] {
+  /* Light-only: force native UI (scrollbars, form controls) light even if
+     Starlight's theme script stamps data-theme="dark" from the OS setting. */
+  color-scheme: light;
+
+  /* --- Octopus brand tokens --- */
+  --octopus-dark: #0f2d26;
+  --octopus-dark-2: #163a31;
+  --octopus-green: #00e89a;
+  --octopus-green-soft: #d8f9ec;
+  --octopus-green-softer: #ecfbf4;
+  --octopus-green-deeper: #027a55;
+  --bg: #f7f8f8;
+  --ink: #0a1f1b;
+  --ink-2: #3f5852;
+  --ink-3: #7a8e89;
+  --ink-4: #b0bfba;
+  --line: #e5e8e7;
+  --line-strong: #d4d9d7;
+  --warn: #b07a1f;
+  --warn-soft: #f8eccf;
+  --info: #2e5c9e;
+  --info-soft: #dee8f7;
+
+  /* --- Map onto Starlight's system --- */
+  --sl-font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Accent = brand green, tuned so text-on-light stays legible
+     (Starlight uses --sl-color-accent for links/active state). */
+  --sl-color-accent-low: var(--octopus-green-softer);
+  --sl-color-accent: var(--octopus-green-deeper);
+  --sl-color-accent-high: var(--octopus-dark);
+
+  /* Surfaces & ink ramp (light) */
+  --sl-color-white: var(--ink);        /* "white" = highest-contrast text in SL */
+  --sl-color-gray-1: var(--ink-2);
+  --sl-color-gray-2: var(--ink-2);
+  --sl-color-gray-3: var(--ink-3);
+  --sl-color-gray-4: var(--ink-4);
+  --sl-color-gray-5: var(--line-strong);
+  --sl-color-gray-6: var(--line);
+  --sl-color-gray-7: #f0f2f1;
+  --sl-color-black: #ffffff;           /* "black" = page/panel bg in SL */
+
+  --sl-color-text: var(--ink-2);
+  --sl-color-text-accent: var(--octopus-green-deeper);
+  --sl-color-bg: var(--bg);
+  --sl-color-bg-nav: #ffffff;
+  --sl-color-bg-sidebar: #ffffff;
+  --sl-color-hairline: var(--line);
+  --sl-color-hairline-light: var(--line);
+  --sl-color-hairline-shade: var(--line);
+}
+
+/* Global type polish to match the mockups. */
+body {
+  font-feature-settings: 'cv11', 'ss01';
+  letter-spacing: -0.011em;
+}
+
+/* Tight heading tracking, per the portal's `tracking-tight` headings. */
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3,
+.content-panel h1 {
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+/* Lead paragraph under the page title (Annonces-style subtitle). */
+.sl-markdown-content .lead {
+  font-size: 0.9375rem;
+  color: var(--ink-3);
+  margin-top: -0.25rem;
+}
+
+/* 11px uppercase eyebrow label, reused from the mockups. */
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
+/* Pill — rounded status/category chip. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.pill-green {
+  background: var(--octopus-green-softer);
+  color: var(--octopus-green-deeper);
+}
+.pill-info {
+  background: var(--info-soft);
+  color: var(--info);
+}
+.pill-warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+/* Primary action: green surface, dark ink, per btn-primary. */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--octopus-green);
+  color: var(--octopus-dark);
+  font-weight: 700;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  text-decoration: none;
+}
+.btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+/* Subtle sidebar active state (soft green), not Starlight's full-accent block. */
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover {
+  background: var(--octopus-green-softer);
+  color: var(--octopus-green-deeper);
+  font-weight: 600;
+}
+
+/* Remove the disclosure marker so our own chevron is the only indicator.
+   Starlight styles markdown <details> by hiding the native marker and drawing
+   a chevron via `summary::before`; that ::before is what we must neutralize
+   (it was adding a ~20px inline-block box above our row). */
+.update > summary {
+  list-style: none;
+}
+.update > summary::marker,
+.update > summary::-webkit-details-marker {
+  display: none;
+}
+.update > summary::before {
+  display: none !important;
+  content: none !important;
+}
