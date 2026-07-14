@@ -10,6 +10,8 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'Argonaut Docs',
+      // Brand favicon, copied from the Argonaut app (public/favicon.ico).
+      favicon: '/favicon.ico',
       customCss: [
         '@fontsource/inter/400.css',
         '@fontsource/inter/500.css',
