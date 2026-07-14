@@ -74,6 +74,14 @@ body {
   color: var(--ink);
 }
 
+/* Changelog index: no TOC and card-based content, so give it a wider
+   content column than the default 45rem prose measure. Scoped via :has()
+   to pages that actually render <UpdatesList /> (the .updates list), so
+   future KB articles keep the comfortable reading width. */
+.content-panel:has(.updates) .sl-container {
+  --sl-content-width: 56rem;
+}
+
 /* Lead paragraph under the page title (Annonces-style subtitle). */
 .sl-markdown-content .lead {
   font-size: 0.9375rem;
