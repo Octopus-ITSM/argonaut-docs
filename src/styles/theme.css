@@ -59,6 +59,13 @@
   --sl-color-hairline-shade: var(--line);
 }
 
+/* Header: right-align the search field. Starlight puts it in a wide middle
+   grid cell where it sits left-of-center; push it to the right edge so it
+   sits next to the language selector. */
+.header > .sl-flex:has([data-open-modal]) {
+  justify-content: flex-end;
+}
+
 /* Global type polish to match the mockups. */
 body {
   font-feature-settings: 'cv11', 'ss01';
