@@ -74,12 +74,18 @@ body {
   color: var(--ink);
 }
 
-/* Changelog index: no TOC and card-based content, so give it a wider
-   content column than the default 45rem prose measure. Scoped via :has()
-   to pages that actually render <UpdatesList /> (the .updates list), so
-   future KB articles keep the comfortable reading width. */
-.content-panel:has(.updates) .sl-container {
-  --sl-content-width: 56rem;
+/* Changelog index: no TOC and card-based content. Without a right-hand
+   TOC, Starlight centers the content column (margin-inline: auto), which
+   on wide screens strands it in the middle far from the nav. Anchor it to
+   the left and give it a wider measure than the 45rem prose default, so it
+   reads like the left-aligned portal dashboards. Scoped via :has() to
+   pages that render <UpdatesList />, so future KB articles are unaffected.
+   Scope at <main> (not the inner panel) so the page header and the body —
+   which live in separate .content-panel wrappers — align together. */
+main:has(.updates) .sl-container {
+  --sl-content-width: 60rem;
+  max-width: 60rem;
+  margin-inline: 0;
 }
 
 /* Lead paragraph under the page title (Annonces-style subtitle). */
