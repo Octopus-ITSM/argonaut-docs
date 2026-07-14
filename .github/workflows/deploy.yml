@@ -1,9 +1,10 @@
 name: Deploy to GitHub Pages
 
 on:
+  # Deploy only when changes land on the trunk (i.e. when a PR is merged),
+  # plus a manual button. No `pull_request` trigger — PRs don't run this.
   push:
     branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -16,9 +17,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Runs on every push to main AND every PR.
-  # On PRs this validates the build (schema/MDX errors fail here, pre-merge)
-  # but does NOT deploy.
+  # Builds the static site (schema/MDX errors fail here).
   build:
     runs-on: ubuntu-latest
     steps:
@@ -27,10 +26,9 @@ jobs:
         with:
           node-version: 22
 
-  # Deploys only on push to main — never on PRs.
+  # Publishes the build to GitHub Pages.
   deploy:
     needs: build
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
