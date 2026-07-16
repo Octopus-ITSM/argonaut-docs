@@ -49,6 +49,10 @@
   --sl-color-gray-7: #f0f2f1;
   --sl-color-black: #ffffff;           /* "black" = page/panel bg in SL */
 
+  /* Page titles at the mockups' 22px (h1.text-[22px]), not Starlight's
+     display size. */
+  --sl-text-h1: 1.375rem;
+
   --sl-color-text: var(--ink-2);
   --sl-color-text-accent: var(--octopus-green-deeper);
   --sl-color-bg: var(--bg);
@@ -92,6 +96,12 @@ body {
 .content-panel h1 {
   letter-spacing: -0.02em;
   color: var(--ink);
+}
+
+/* Page title weight per the mockups' font-bold (h2/h3 stay at 600). */
+.sl-markdown-content h1,
+.content-panel h1 {
+  font-weight: 700;
 }
 
 /* Changelog index: no TOC and card-based content. Without a right-hand
