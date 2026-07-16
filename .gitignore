@@ -2,6 +2,8 @@
 dist/
 # generated types
 .astro/
+# generated per-locale docs (source of truth: src/content-src/docs/)
+src/content/docs/
 # dependencies
 node_modules/
 # logs

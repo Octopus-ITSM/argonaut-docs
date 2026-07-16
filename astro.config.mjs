@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import bilingualDocs from './integrations/bilingual-docs.mjs';
 
 // Project Pages deploy (no custom domain): served under a base path.
 // Final URL: https://octopus-itsm.github.io/argonaut-docs/
@@ -8,6 +9,9 @@ export default defineConfig({
   site: 'https://octopus-itsm.github.io',
   base: '/argonaut-docs/',
   integrations: [
+    // MUST come before starlight: generates src/content/docs/ (en + fr)
+    // from the single-file bilingual sources in src/content-src/docs/.
+    bilingualDocs(),
     starlight({
       title: 'Argonaut Docs',
       // Brand favicon, copied from the Argonaut app (public/favicon.ico).

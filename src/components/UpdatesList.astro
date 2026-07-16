@@ -1,18 +1,35 @@
 ---
-import { getCollection, render } from 'astro:content';
+import { getCollection } from 'astro:content';
 
 // Resolve the current language. Within Starlight, `locals.starlight.lang`
 // is the most reliable source; fall back to Astro's locale, then English.
 const lang = (Astro.locals.starlight?.lang ?? Astro.currentLocale ?? 'en').split('-')[0];
 const locale = (lang === 'fr' ? 'fr' : 'en') as 'en' | 'fr';
 
-// Only entries for the current locale (folder-prefixed ids: "en/...", "fr/...").
-const raw = await getCollection('updates', ({ id }) => id.startsWith(`${locale}/`));
+// Each file holds both languages; the body is split by <!-- en --> / <!-- fr -->
+// markers (comments survive the markdown pipeline into the rendered HTML).
+// Anything before the first marker is shared by both languages — same
+// convention as the bilingual docs sources (src/content-src/docs/).
+function pickSection(html: string, target: 'en' | 'fr'): string {
+  const tokens = html.split(/<!--\s*(en|fr)\s*-->/gi);
+  const shared = tokens[0] ?? '';
+  const sections: Record<string, string> = { en: '', fr: '' };
+  for (let i = 1; i < tokens.length; i += 2) {
+    sections[tokens[i].toLowerCase()] += tokens[i + 1] ?? '';
+  }
+  const own = sections[target].trim() ? sections[target] : sections.en;
+  return (shared + own).trim();
+}
+
+const raw = await getCollection('updates');
 raw.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 
-const entries = await Promise.all(
-  raw.map(async (entry) => ({ entry, Content: (await render(entry)).Content }))
-);
+const entries = raw.map((entry) => ({
+  entry,
+  title: entry.data.title[locale],
+  description: entry.data.description[locale],
+  html: pickSection(entry.rendered?.html ?? '', locale),
+}));
 
 // Format in UTC: bare YAML dates parse as UTC midnight, so formatting in the
 // local zone (e.g. UTC-4) would shift the displayed day back by one.
@@ -24,8 +41,8 @@ const dateFmt = new Intl.DateTimeFormat(locale, {
 });
 
 const strings = {
-  en: { empty: 'No updates yet.', source: 'View source change', tag: 'Update', details: 'Details' },
-  fr: { empty: 'Aucune nouveauté pour le moment.', source: 'Voir le changement source', tag: 'Nouveauté', details: 'Détails' },
+  en: { empty: 'No updates yet.', tag: 'Update', details: 'Details' },
+  fr: { empty: 'Aucune nouveauté pour le moment.', tag: 'Nouveauté', details: 'Détails' },
 } as const;
 const t = strings[locale];
 ---
@@ -33,7 +50,7 @@ const t = strings[locale];
 {entries.length === 0 && <p class="updates-empty">{t.empty}</p>}
 
 <div class="updates">
-  {entries.map(({ entry, Content }) => (
+  {entries.map(({ entry, title, description, html }) => (
     <details class="update">
       <summary class="update-summary">
        <span class="update-row">
@@ -48,22 +65,16 @@ const t = strings[locale];
             <span class="pill pill-green">{t.tag}</span>
             <time class="update-date" datetime={entry.data.date.toISOString()}>{dateFmt.format(entry.data.date)}</time>
           </span>
-          <span class="update-title">{entry.data.title}</span>
-          <span class="update-desc">{entry.data.description}</span>
+          <span class="update-title">{title}</span>
+          <span class="update-desc">{description}</span>
         </span>
         <svg class="update-chevron" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6" /></svg>
        </span>
       </summary>
       <div class="update-body">
         <div class="update-details">
-          <Content />
+          <Fragment set:html={html} />
         </div>
-        {entry.data.sourcePR && (
-          <a class="src-chip" href={entry.data.sourcePR} target="_blank" rel="noopener">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18" /><path d="m7 14 3-3 3 2 4-5" /></svg>
-            {t.source}
-          </a>
-        )}
       </div>
     </details>
   ))}
@@ -179,25 +190,6 @@ const t = strings[locale];
   }
   .update-details :global(li)::marker {
     color: var(--octopus-green-deeper);
-  }
-
-  /* Source link rendered as the mockups' bordered src-chip. */
-  .src-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 0.875rem;
-    padding: 7px 12px;
-    border-radius: 9px;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    font-size: 0.78125rem;
-    font-weight: 500;
-    color: var(--ink-2);
-    text-decoration: none;
-  }
-  .src-chip:hover {
-    border-color: var(--line-strong);
   }
 
   @media (max-width: 30rem) {
