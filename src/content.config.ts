@@ -20,8 +20,6 @@ export const collections = {
       title: z.object({ en: z.string(), fr: z.string() }),
       date: z.coerce.date(),
       description: z.object({ en: z.string(), fr: z.string() }),
-      // Optional link back to the source change in another repo.
-      sourcePR: z.string().url().optional(),
     }),
   }),
 };
