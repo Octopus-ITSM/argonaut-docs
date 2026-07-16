@@ -1,0 +1,22 @@
+---
+// Updates pages 2+ (French): /fr/2/, /fr/3/, … Page 1 is the docs index
+// page (src/content-src/docs/index.mdx), served at /fr/ by Starlight.
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import UpdatesList from '@components/UpdatesList.astro';
+import { getUpdatesPageCount, updatesPageStrings } from '../../../lib/updates';
+
+export async function getStaticPaths() {
+  const total = await getUpdatesPageCount();
+  return Array.from({ length: total - 1 }, (_, i) => ({
+    params: { page: String(i + 2) },
+  }));
+}
+
+const page = Number(Astro.params.page);
+const t = updatesPageStrings.fr;
+---
+
+<StarlightPage frontmatter={{ title: t.title, description: t.description, tableOfContents: false }}>
+  <p class="lead">{t.lead}</p>
+  <UpdatesList page={page} />
+</StarlightPage>

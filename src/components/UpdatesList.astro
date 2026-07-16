@@ -1,5 +1,11 @@
 ---
-import { getCollection } from 'astro:content';
+import { getSortedUpdates, UPDATES_PER_PAGE } from '../lib/updates';
+
+interface Props {
+  // 1-based page number; page 1 is the docs index, 2+ are /2/, /3/, … routes.
+  page?: number;
+}
+const page = Astro.props.page ?? 1;
 
 // Resolve the current language. Within Starlight, `locals.starlight.lang`
 // is the most reliable source; fall back to Astro's locale, then English.
@@ -21,8 +27,14 @@ function pickSection(html: string, target: 'en' | 'fr'): string {
   return (shared + own).trim();
 }
 
-const raw = await getCollection('updates');
-raw.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const all = await getSortedUpdates();
+const totalPages = Math.max(1, Math.ceil(all.length / UPDATES_PER_PAGE));
+const raw = all.slice((page - 1) * UPDATES_PER_PAGE, page * UPDATES_PER_PAGE);
+
+// Newest-first list: the previous page holds newer entries, the next older.
+const base = import.meta.env.BASE_URL;
+const pageUrl = (n: number) =>
+  `${base}${locale === 'fr' ? 'fr/' : ''}${n > 1 ? `${n}/` : ''}`;
 
 const entries = raw.map((entry) => ({
   entry,
@@ -41,8 +53,8 @@ const dateFmt = new Intl.DateTimeFormat(locale, {
 });
 
 const strings = {
-  en: { empty: 'No updates yet.', tag: 'Update', details: 'Details' },
-  fr: { empty: 'Aucune nouveauté pour le moment.', tag: 'Nouveauté', details: 'Détails' },
+  en: { empty: 'No updates yet.', tag: 'Update', details: 'Details', newer: 'Newer', older: 'Older', pagination: 'Pagination' },
+  fr: { empty: 'Aucune nouveauté pour le moment.', tag: 'Nouveauté', details: 'Détails', newer: 'Plus récentes', older: 'Plus anciennes', pagination: 'Pagination' },
 } as const;
 const t = strings[locale];
 ---
@@ -79,6 +91,22 @@ const t = strings[locale];
     </details>
   ))}
 </div>
+
+{totalPages > 1 && (
+  <nav class="pager" aria-label={t.pagination}>
+    {page > 1 ? (
+      <a class="pager-link" href={pageUrl(page - 1)} rel="prev">← {t.newer}</a>
+    ) : (
+      <span class="pager-link is-disabled">← {t.newer}</span>
+    )}
+    <span class="pager-status">{page} / {totalPages}</span>
+    {page < totalPages ? (
+      <a class="pager-link" href={pageUrl(page + 1)} rel="next">{t.older} →</a>
+    ) : (
+      <span class="pager-link is-disabled">{t.older} →</span>
+    )}
+  </nav>
+)}
 
 <style>
   .updates {
@@ -190,6 +218,39 @@ const t = strings[locale];
   }
   .update-details :global(li)::marker {
     color: var(--octopus-green-deeper);
+  }
+
+  /* Pagination: bordered chips, same vocabulary as the update cards. */
+  .pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+  .pager-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 9px;
+    background: #fff;
+    border: 1px solid var(--line);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+  a.pager-link:hover {
+    border-color: var(--line-strong);
+  }
+  .pager-link.is-disabled {
+    color: var(--ink-4);
+    background: transparent;
+  }
+  .pager-status {
+    font-size: 0.8125rem;
+    color: var(--ink-3);
   }
 
   @media (max-width: 30rem) {
