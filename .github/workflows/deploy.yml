@@ -21,10 +21,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: withastro/action@v3
+      - uses: actions/checkout@v7
+      - uses: withastro/action@v6
         with:
-          node-version: 22
+          node-version: 24
 
   # Publishes the build to GitHub Pages.
   deploy:
@@ -35,4 +35,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        # v5 is required by withastro/action@v6, which uploads the Pages
+        # artifact with upload-pages-artifact@v5.
+        uses: actions/deploy-pages@v5
