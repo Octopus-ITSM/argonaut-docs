@@ -83,6 +83,16 @@ starlight-lang-select {
   flex-shrink: 0;
 }
 
+/* Search modal: no reserved empty space below the input. Starlight gives
+   the dialog a 15rem min-height on desktop so its size is stable while
+   typing; collapse it and let it grow with the results instead.
+   ([open] lifts specificity above Starlight's scoped `dialog` rule.) */
+@media (min-width: 50rem) {
+  site-search dialog[open] {
+    min-height: 0;
+  }
+}
+
 /* Global type polish to match the mockups. */
 body {
   font-feature-settings: 'cv11', 'ss01';
