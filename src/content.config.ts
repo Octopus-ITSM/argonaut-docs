@@ -20,6 +20,10 @@ export const collections = {
       title: z.object({ en: z.string(), fr: z.string() }),
       date: z.coerce.date(),
       description: z.object({ en: z.string(), fr: z.string() }),
+      // Free-form, localized tags. Each tag's English label is slugified into
+      // a stable key (see tagSlug in src/lib/updates.ts) that drives the
+      // /tags/<slug>/ filter routes and the deterministic pill colour.
+      tags: z.array(z.object({ en: z.string(), fr: z.string() })).default([]),
     }),
   }),
 };

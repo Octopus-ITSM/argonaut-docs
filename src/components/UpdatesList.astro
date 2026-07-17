@@ -1,11 +1,21 @@
 ---
-import { getSortedUpdates, UPDATES_PER_PAGE } from '../lib/updates';
+import {
+  getSortedUpdates,
+  getUpdatesByTag,
+  tagSlug,
+  tagVariant,
+  UPDATES_PER_PAGE,
+} from '../lib/updates';
 
 interface Props {
   // 1-based page number; page 1 is the docs index, 2+ are /2/, /3/, … routes.
   page?: number;
+  // Tag slug for the /tags/<slug>/ filter routes. When set, the list is
+  // filtered to that tag and shown on a single page (no pager).
+  tag?: string;
 }
 const page = Astro.props.page ?? 1;
+const tag = Astro.props.tag;
 
 // Resolve the current language. Within Starlight, `locals.starlight.lang`
 // is the most reliable source; fall back to Astro's locale, then English.
@@ -27,20 +37,27 @@ function pickSection(html: string, target: 'en' | 'fr'): string {
   return (shared + own).trim();
 }
 
-const all = await getSortedUpdates();
-const totalPages = Math.max(1, Math.ceil(all.length / UPDATES_PER_PAGE));
-const raw = all.slice((page - 1) * UPDATES_PER_PAGE, page * UPDATES_PER_PAGE);
+// Filtered (tag) view lists every match on one page; the default view paginates.
+const filtering = Boolean(tag);
+const all = filtering ? await getUpdatesByTag(tag!) : await getSortedUpdates();
+const totalPages = filtering ? 1 : Math.max(1, Math.ceil(all.length / UPDATES_PER_PAGE));
+const raw = filtering ? all : all.slice((page - 1) * UPDATES_PER_PAGE, page * UPDATES_PER_PAGE);
 
 // Newest-first list: the previous page holds newer entries, the next older.
 const base = import.meta.env.BASE_URL;
-const pageUrl = (n: number) =>
-  `${base}${locale === 'fr' ? 'fr/' : ''}${n > 1 ? `${n}/` : ''}`;
+const localePrefix = `${base}${locale === 'fr' ? 'fr/' : ''}`;
+const pageUrl = (n: number) => `${localePrefix}${n > 1 ? `${n}/` : ''}`;
+const tagUrl = (slug: string) => `${localePrefix}tags/${slug}/`;
 
 const entries = raw.map((entry) => ({
   entry,
   title: entry.data.title[locale],
   description: entry.data.description[locale],
   html: pickSection(entry.rendered?.html ?? '', locale),
+  tags: entry.data.tags.map((tg) => {
+    const slug = tagSlug(tg.en);
+    return { slug, label: tg[locale], variant: tagVariant(slug) };
+  }),
 }));
 
 // Format in UTC: bare YAML dates parse as UTC midnight, so formatting in the
@@ -62,7 +79,7 @@ const t = strings[locale];
 {entries.length === 0 && <p class="updates-empty">{t.empty}</p>}
 
 <div class="updates">
-  {entries.map(({ entry, title, description, html }) => (
+  {entries.map(({ entry, title, description, html, tags }) => (
     <details class="update">
       <summary class="update-summary">
        <span class="update-row">
@@ -74,7 +91,9 @@ const t = strings[locale];
         </span>
         <span class="update-main">
           <span class="update-head">
-            <span class="pill pill-green">{t.tag}</span>
+            {tags.length > 0
+              ? tags.map((tg) => <a class:list={['pill', tg.variant, 'update-tag']} href={tagUrl(tg.slug)}>{tg.label}</a>)
+              : <span class="pill pill-green">{t.tag}</span>}
             <time class="update-date" datetime={entry.data.date.toISOString()}>{dateFmt.format(entry.data.date)}</time>
           </span>
           <span class="update-title">{title}</span>
@@ -108,6 +127,19 @@ const t = strings[locale];
   </nav>
 )}
 
+<script>
+  // Tag pills live inside <summary>, so a bare click would also toggle the
+  // card. For a plain left-click, navigate to the tag page ourselves and
+  // suppress the toggle; leave modified clicks (new tab/window) to the browser.
+  for (const el of document.querySelectorAll<HTMLAnchorElement>('.update-tag')) {
+    el.addEventListener('click', (e) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      window.location.assign(el.href);
+    });
+  }
+</script>
+
 <style>
   .updates {
     display: flex;
@@ -117,6 +149,16 @@ const t = strings[locale];
   }
   .updates-empty {
     color: var(--ink-3);
+  }
+
+  /* Tag pills link to their /tags/<slug>/ page. Inherit the .pill colours;
+     just make them read as clickable and dim slightly on hover. */
+  .update-tag {
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+  .update-tag:hover {
+    opacity: 0.75;
   }
 
   /* Card: white surface on the off-white page, hairline border, 16px radius. */
@@ -168,6 +210,7 @@ const t = strings[locale];
   }
   .update-head {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
   }

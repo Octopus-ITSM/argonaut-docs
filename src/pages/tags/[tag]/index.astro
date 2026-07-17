@@ -1,0 +1,21 @@
+---
+// Per-tag filter pages (English): /tags/<slug>/. Lists every update carrying
+// the tag on a single page. Slugs come from each tag's English label
+// (see tagSlug in src/lib/updates.ts).
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import UpdatesList from '@components/UpdatesList.astro';
+import { getAllTags, getAllTagSlugs, tagPageStrings } from '../../../lib/updates';
+
+export async function getStaticPaths() {
+  const slugs = await getAllTagSlugs();
+  return slugs.map((tag) => ({ params: { tag } }));
+}
+
+const tag = Astro.params.tag!;
+const label = (await getAllTags('en')).find((t) => t.slug === tag)?.label ?? tag;
+const t = tagPageStrings.en;
+---
+
+<StarlightPage frontmatter={{ title: t.title(label), description: t.description(label), tableOfContents: false }}>
+  <UpdatesList tag={tag} />
+</StarlightPage>

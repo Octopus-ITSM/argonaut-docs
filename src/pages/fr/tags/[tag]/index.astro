@@ -1,0 +1,21 @@
+---
+// Per-tag filter pages (French): /fr/tags/<slug>/. Mirrors the English route
+// (src/pages/tags/[tag]/index.astro); slugs are shared (from the tag's
+// English label) so a concept keeps one route across locales.
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import UpdatesList from '@components/UpdatesList.astro';
+import { getAllTags, getAllTagSlugs, tagPageStrings } from '../../../../lib/updates';
+
+export async function getStaticPaths() {
+  const slugs = await getAllTagSlugs();
+  return slugs.map((tag) => ({ params: { tag } }));
+}
+
+const tag = Astro.params.tag!;
+const label = (await getAllTags('fr')).find((t) => t.slug === tag)?.label ?? tag;
+const t = tagPageStrings.fr;
+---
+
+<StarlightPage frontmatter={{ title: t.title(label), description: t.description(label), tableOfContents: false }}>
+  <UpdatesList tag={tag} />
+</StarlightPage>
