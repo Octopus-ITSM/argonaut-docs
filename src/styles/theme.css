@@ -3,6 +3,21 @@
    The site is light-only, so the same palette is applied to both
    :root (Starlight's default/dark slot) and the explicit light slot. */
 
+/* Metric-matched fallback for Inter. @fontsource ships Inter with
+   font-display: swap, so text first paints in the fallback and then swaps to
+   Inter once it loads. Sizing a local system font (Arial) to Inter's metrics
+   means that swap doesn't change any box dimensions — no layout shift / "jerk"
+   on load or reload. Overrides are the standard Inter→Arial values (as emitted
+   by next/font). Referenced first in --sl-font below. */
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial');
+  ascent-override: 90.44%;
+  descent-override: 22.52%;
+  line-gap-override: 0%;
+  size-adjust: 107.12%;
+}
+
 :root,
 :root[data-theme='light'],
 :root[data-theme='dark'] {
@@ -30,7 +45,7 @@
   --info-soft: #dee8f7;
 
   /* --- Map onto Starlight's system --- */
-  --sl-font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sl-font: 'Inter', 'Inter Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /* Accent = brand green, tuned so text-on-light stays legible
      (Starlight uses --sl-color-accent for links/active state). */
