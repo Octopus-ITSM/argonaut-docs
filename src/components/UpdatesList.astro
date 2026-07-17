@@ -2,8 +2,7 @@
 import {
   getSortedUpdates,
   getUpdatesByTag,
-  tagSlug,
-  tagVariant,
+  localizeUpdate,
   UPDATES_PER_PAGE,
 } from '../lib/updates';
 
@@ -22,21 +21,6 @@ const tag = Astro.props.tag;
 const lang = (Astro.locals.starlight?.lang ?? Astro.currentLocale ?? 'en').split('-')[0];
 const locale = (lang === 'fr' ? 'fr' : 'en') as 'en' | 'fr';
 
-// Each file holds both languages; the body is split by <!-- en --> / <!-- fr -->
-// markers (comments survive the markdown pipeline into the rendered HTML).
-// Anything before the first marker is shared by both languages — same
-// convention as the bilingual docs sources (src/content-src/docs/).
-function pickSection(html: string, target: 'en' | 'fr'): string {
-  const tokens = html.split(/<!--\s*(en|fr)\s*-->/gi);
-  const shared = tokens[0] ?? '';
-  const sections: Record<string, string> = { en: '', fr: '' };
-  for (let i = 1; i < tokens.length; i += 2) {
-    sections[tokens[i].toLowerCase()] += tokens[i + 1] ?? '';
-  }
-  const own = sections[target].trim() ? sections[target] : sections.en;
-  return (shared + own).trim();
-}
-
 // Filtered (tag) view lists every match on one page; the default view paginates.
 const filtering = Boolean(tag);
 const all = filtering ? await getUpdatesByTag(tag!) : await getSortedUpdates();
@@ -51,13 +35,7 @@ const tagUrl = (slug: string) => `${localePrefix}tags/${slug}/`;
 
 const entries = raw.map((entry) => ({
   entry,
-  title: entry.data.title[locale],
-  description: entry.data.description[locale],
-  html: pickSection(entry.rendered?.html ?? '', locale),
-  tags: entry.data.tags.map((tg) => {
-    const slug = tagSlug(tg.en);
-    return { slug, label: tg[locale], variant: tagVariant(slug) };
-  }),
+  ...localizeUpdate(entry.data, locale),
 }));
 
 // Format in UTC: bare YAML dates parse as UTC midnight, so formatting in the

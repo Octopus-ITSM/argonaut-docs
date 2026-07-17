@@ -1,4 +1,6 @@
-import { getCollection } from 'astro:content';
+import { getCollection, type CollectionEntry } from 'astro:content';
+
+type UpdateData = CollectionEntry<'updates'>['data'];
 
 // Number of update cards per page. Page 1 is the docs index page
 // (src/content-src/docs/index.mdx); pages 2+ are standalone routes
@@ -17,12 +19,12 @@ export async function getUpdatesPageCount() {
   return Math.max(1, Math.ceil(entries.length / UPDATES_PER_PAGE));
 }
 
-// Slugify a tag's English label into a stable key. Tags are free-form and
-// localized, so the English label is the canonical identity: it keeps a tag
-// as one filter route (/tags/<slug>/) and one colour even when the label
-// differs by locale. e.g. "Security fix" -> "security-fix".
-export function tagSlug(en: string): string {
-  return en
+// Slugify a tag's English label into a stable key. Tags are free-form, so the
+// English label is the canonical identity: it keeps a tag as one filter route
+// (/tags/<slug>/) and one colour even when the label differs by locale.
+// e.g. "Security fix" -> "security-fix".
+export function tagSlug(label: string): string {
+  return label
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
@@ -38,29 +40,42 @@ export function tagVariant(slug: string): (typeof TAG_VARIANTS)[number] {
   return TAG_VARIANTS[hash % TAG_VARIANTS.length];
 }
 
+// Resolve an update's fields for a locale, falling back to English when the
+// locale block is absent. `html` is the section body rendered by the loader.
+// Tag slug/colour come from the English label; the localized label is paired
+// positionally (en.tags[i] <-> fr.tags[i]).
+export function localizeUpdate(data: UpdateData, locale: Locale) {
+  const block = (locale === 'en' ? data.en : data[locale]) ?? data.en;
+  const localeTags = (locale === 'en' ? data.en.tags : data[locale]?.tags) ?? data.en.tags;
+  const tags = data.en.tags.map((enLabel, i) => {
+    const slug = tagSlug(enLabel);
+    return { slug, label: localeTags[i] ?? enLabel, variant: tagVariant(slug) };
+  });
+  return { title: block.title, description: block.description, tags, html: block.html ?? '' };
+}
+
 // Every distinct tag slug across all updates — drives the /tags/<slug>/ routes.
 export async function getAllTagSlugs(): Promise<string[]> {
   const entries = await getCollection('updates');
   const set = new Set<string>();
   for (const entry of entries) {
-    for (const tag of entry.data.tags) {
-      const slug = tagSlug(tag.en);
+    for (const label of entry.data.en.tags) {
+      const slug = tagSlug(label);
       if (slug) set.add(slug);
     }
   }
   return [...set];
 }
 
-// Unique tags for the filter bar: {slug, label} in the given locale, sorted by
-// label. Keyed by the en-derived slug so one concept stays one chip per locale.
+// Unique tags for tag pages/pills: {slug, label} in the given locale, sorted by
+// label. Keyed by the en-derived slug so one concept stays one entry per locale.
 export async function getAllTags(locale: Locale) {
   const entries = await getCollection('updates');
   const map = new Map<string, { slug: string; label: string }>();
   for (const entry of entries) {
-    for (const tag of entry.data.tags) {
-      const slug = tagSlug(tag.en);
+    for (const { slug, label } of localizeUpdate(entry.data, locale).tags) {
       if (!slug || map.has(slug)) continue;
-      map.set(slug, { slug, label: tag[locale] });
+      map.set(slug, { slug, label });
     }
   }
   return [...map.values()].sort((a, b) => a.label.localeCompare(b.label, locale));
@@ -69,7 +84,7 @@ export async function getAllTags(locale: Locale) {
 // Newest-first updates carrying the given tag slug, for the /tags/<slug>/ pages.
 export async function getUpdatesByTag(slug: string) {
   const all = await getSortedUpdates();
-  return all.filter((entry) => entry.data.tags.some((tag) => tagSlug(tag.en) === slug));
+  return all.filter((entry) => entry.data.en.tags.some((label) => tagSlug(label) === slug));
 }
 
 // Page chrome for the standalone paginated routes. Page 1 carries the same
